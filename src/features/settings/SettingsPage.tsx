@@ -25,6 +25,8 @@ export function SettingsPage() {
   const [footer, setFooter] = useState(settings.receipt_footer)
   const [logo, setLogo] = useState<string | null>(settings.logo_data_url)
   const [float, setFloat] = useState(String(settings.opening_float))
+  const [startDate, setStartDate] = useState(settings.event_start_date ?? '')
+  const [eventDays, setEventDays] = useState(String(settings.event_days))
   const [busy, setBusy] = useState(false)
   const [connecting, setConnecting] = useState<Connection | null>(null)
   const [printerError, setPrinterError] = useState<string | null>(null)
@@ -33,6 +35,7 @@ export function SettingsPage() {
   useEffect(() => {
     setEventName(settings.event_name); setHeader(settings.receipt_header); setFooter(settings.receipt_footer)
     setLogo(settings.logo_data_url); setFloat(String(settings.opening_float))
+    setStartDate(settings.event_start_date ?? ''); setEventDays(String(settings.event_days))
   }, [settings])
 
   const preview = useMemo(() => buildReceipt(sampleSale(profile?.full_name ?? 'Cashier'), {
@@ -65,9 +68,11 @@ export function SettingsPage() {
   async function saveReceipt() {
     const floatN = Number(float || 0)
     if (!Number.isInteger(floatN) || floatN < 0) return toast('Opening cash must be a whole number', 'error')
+    const daysN = Number(eventDays)
+    if (!Number.isInteger(daysN) || daysN < 1 || daysN > 31) return toast('Event days must be between 1 and 31', 'error')
     setBusy(true)
     try {
-      await save({ event_name: eventName.trim() || 'Event Sale', receipt_header: header, receipt_footer: footer, logo_data_url: logo, opening_float: floatN })
+      await save({ event_name: eventName.trim() || 'Event Sale', receipt_header: header, receipt_footer: footer, logo_data_url: logo, opening_float: floatN, event_start_date: startDate || null, event_days: daysN })
       toast('Receipt settings saved')
     } catch (err) {
       toast(errorMessage(err), 'error')
@@ -131,7 +136,7 @@ export function SettingsPage() {
       {/* ---------------- receipt design (admin) ---------------- */}
       <section className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-5 lg:grid-cols-[1fr_auto]">
         <div className="space-y-4">
-          <h2 className="text-lg font-bold">Receipt design {!isAdmin && <Badge className="ml-2">admin only</Badge>}</h2>
+          <h2 className="text-lg font-bold">Event & receipt {!isAdmin && <Badge className="ml-2">admin only</Badge>}</h2>
           <Field label="Event / shop name (top of receipt)">
             <Input value={eventName} onChange={(e) => setEventName(e.target.value)} disabled={!isAdmin} />
           </Field>
@@ -157,10 +162,18 @@ export function SettingsPage() {
               {isAdmin && logo && <Button variant="ghost" size="sm" onClick={() => setLogo(null)}>Remove</Button>}
             </div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Event first day" hint="Reports show each event day from here.">
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={!isAdmin} />
+            </Field>
+            <Field label="Number of event days">
+              <Input inputMode="numeric" value={eventDays} onChange={(e) => setEventDays(e.target.value.replace(/D/g, ''))} disabled={!isAdmin} />
+            </Field>
+          </div>
           <Field label="Opening cash in the drawer each day (Rs)" hint="Used for the end-of-day cash count.">
             <Input inputMode="numeric" value={float} onChange={(e) => setFloat(e.target.value.replace(/\D/g, ''))} disabled={!isAdmin} />
           </Field>
-          {isAdmin && <Button busy={busy} onClick={() => void saveReceipt()}>Save receipt settings</Button>}
+          {isAdmin && <Button busy={busy} onClick={() => void saveReceipt()}>Save settings</Button>}
         </div>
         <div>
           <div className="mb-2 text-sm font-medium text-slate-700">Preview ({cfg.paper} mm)</div>

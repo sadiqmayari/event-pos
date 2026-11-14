@@ -6,7 +6,8 @@ import { Layout } from './components/Layout'
 import { ProductsPage } from './features/products/ProductsPage'
 import { StaffPage } from './features/staff/StaffPage'
 import { SalesPage } from './features/sales/SalesPage'
-import { ComingSoon } from './components/ComingSoon'
+import { HistoryPage } from './features/history/HistoryPage'
+import { ReportsPage } from './features/reports/ReportsPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { PrintHost } from './features/receipts/PrintHost'
 import { supabaseConfigured } from './lib/supabase'
@@ -23,8 +24,8 @@ export default function App() {
           <Route element={<RequireRole><Layout /></RequireRole>}>
             <Route index element={<SalesPage />} />
             <Route path="products" element={<ProductsPage />} />
-            <Route path="history" element={<ComingSoon title="Sales history (Stage 4)" />} />
-            <Route path="reports" element={<RequireRole role="admin"><ComingSoon title="Reports (Stage 4)" /></RequireRole>} />
+            <Route path="history" element={<HistoryPage />} />
+            <Route path="reports" element={<RequireRole role="admin"><ReportsPage /></RequireRole>} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="staff" element={<RequireRole role="admin"><StaffPage /></RequireRole>} />
           </Route>

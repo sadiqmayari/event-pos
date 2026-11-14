@@ -7,7 +7,7 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
 | 1. Setup, auth, products & stock | ✅ done |
 | 2. Sales screen | ✅ done |
 | 3. Invoices & printing (Black Copper BC-86AC) | ✅ done |
-| 4. History, voids, reports | ⏳ |
+| 4. History, voids, reports | ✅ done |
 | 5. Offline queue + PWA | ⏳ |
 | 6. GitHub Pages deployment | ⏳ |
 
@@ -23,8 +23,9 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
    3. `supabase/migrations/003_stock_functions.sql`
    4. `supabase/migrations/004_sales.sql`
    5. `supabase/migrations/005_receipt_settings.sql`
-   6. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
-   7. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
+   6. `supabase/migrations/006_voids_reports.sql`
+   7. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
+   8. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
 4. **Create staff users:** open **Authentication → Users → Add user → Create new user**, enter an email and password, and tick *Auto confirm user*. Each new user gets a `profiles` row automatically, with the role **cashier**.
 5. **Make yourself admin** by running this once in the SQL Editor (use your email):
    ```sql
@@ -119,10 +120,24 @@ If direct printing fails for any reason (unplugged, out of range, permission), t
   - *Advanced:* direct USB on Windows only works if you replace the driver with WinUSB (e.g. using Zadig). The printer then stops working for other Windows apps, so browser printing is usually better.
 - **Printer test:** **Settings → Print test receipt** prints a receipt marked TEST PRINT.
 
+## 7. History, voids & reports (Stage 4)
+
+**Sales history (all staff):** filter by day (event days are listed, or pick any date), invoice number, cashier, payment method, or completed/voided. The list updates live as other tills sell. Tap a sale to see its receipt and **Reprint** it.
+
+**Void / refund (admin):** in a sale's detail, choose **Void / refund…** and give a reason. In one transaction, all items go back into stock, the invoice is marked VOID (it stays in history and still prints with a VOID banner), the stock ledger records the return, and the audit log records who voided it and why. The screen tells you how much to refund in cash and/or on the card machine.
+
+**Reports (admin):** set the **event first day** and **number of days** in Settings first.
+- A table with one row per event day: invoices, items, gross, discounts, net sales, cash, card and voids, plus a total row. Tap a day for its details and **top products** (or choose *Whole event*).
+- **End-of-day cash count:** *expected in drawer* = opening cash (from Settings) + cash taken that day (cash sales net of change, plus the cash part of split payments). Enter the counted cash to see the difference (over/short) and save it. Saved counts are listed.
+- **Export:** Sales CSV (one row per invoice), Sales items CSV (one row per product line), Stock movements CSV, and a **Full backup** (all tables as JSON). Download a backup at the end of every day.
+
+Testing tip: run `select public.generate_fake_sales(50, 4);` in the SQL Editor, then open Reports. The days, cash and card split, top products and history should all be filled in. Then try voiding one sale and check its stock went back up on the Stock page.
+
 ### What's enforced in the database (not just hidden in the UI)
 
 - Anonymous visitors can't read or write anything.
 - Cashiers can read products and sales but can't change products, prices or stock.
+- Only admins can void (`void_sale`: stock restored, ledger + audit written) or see reports and cash counts.
 - A sale can only be recorded by `create_sale`, which locks the products, re-checks stock, recalculates every total, discount and change amount on the server, and takes the next gapless invoice number, all in one transaction.
 - **Nobody can edit `stock_qty` directly, admins included.** Stock only changes through `adjust_stock`, `import_products` and (from Stage 2) the sale and void functions. Each of those writes a row to `stock_movements`, so the stock ledger is always complete.
 - Product edits, imports and staff role changes are recorded in `audit_log` (admin-only).
