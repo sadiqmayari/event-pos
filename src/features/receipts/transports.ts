@@ -50,7 +50,7 @@ async function openUsb(device: USBDevice): Promise<PrinterTransport> {
   try {
     await device.claimInterface(iface)
   } catch {
-    throw new Error('The USB printer is in use by the computer\'s printer driver. Use browser printing, or see README → Printing on Windows.')
+    throw new Error(WINDOWS_DRIVER_HELP)
   }
   return {
     kind: 'usb',
