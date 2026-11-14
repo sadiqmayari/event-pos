@@ -33,8 +33,8 @@ export function HistoryPage() {
         {isFetching && <Spinner className="size-5 text-teal-700" />}
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3">
-        <Input className="w-40" inputMode="numeric" placeholder="Invoice #" value={f.invoice} onChange={(e) => set({ invoice: e.target.value.replace(/\D/g, '') })} />
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 md:grid-cols-3 xl:grid-cols-6">
+        <Input inputMode="numeric" placeholder="Invoice #" value={f.invoice} onChange={(e) => set({ invoice: e.target.value.replace(/\D/g, '') })} />
         <Select className="w-auto" value={f.day ?? ''} onChange={(e) => set({ day: e.target.value || null })} disabled={Boolean(f.invoice)}>
           <option value="">All dates</option>
           {days.map((d) => <option key={d} value={d}>{formatDayKey(d)}{d === localDateKey() ? ' (today)' : ''}</option>)}

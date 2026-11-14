@@ -1,7 +1,9 @@
+import { twMerge } from 'tailwind-merge'
 import { useEffect, type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 
+/** Join class names; later Tailwind classes override earlier conflicting ones (e.g. w-auto beats w-full). */
 export function cx(...c: (string | false | null | undefined)[]) {
-  return c.filter(Boolean).join(' ')
+  return twMerge(c.filter(Boolean).join(' '))
 }
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success'
