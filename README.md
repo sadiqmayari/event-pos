@@ -9,7 +9,7 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
 | 3. Invoices & printing (Black Copper BC-86AC) | ✅ done |
 | 4. History, voids, reports | ✅ done |
 | 5. Offline queue + PWA | ✅ done |
-| 6. GitHub Pages deployment | ⏳ |
+| 6. GitHub Pages deployment | ✅ workflow ready |
 
 ---
 
@@ -148,6 +148,31 @@ Testing tip: run `select public.generate_fake_sales(50, 4);` in the SQL Editor, 
 **Needs attention:** if the server refuses a queued sale (e.g. another till sold the last units while this one was offline), it gets a red **needs attention** badge and is never thrown away silently. An admin fixes the stock and presses **Retry**. **Discard** (admin only) downloads a copy first.
 
 **Testing it:** in Chrome DevTools → Network, choose *Offline*. Make a sale; you should see the temporary number and the "1 to sync" badge. Switch back to *No throttling*; within a few seconds it syncs and appears in History with a real invoice number, and the stock updates on every device.
+
+## 9. Deploy to GitHub Pages (Stage 6)
+
+`.github/workflows/deploy.yml` builds and deploys on every push to `main`. It runs `npm ci`, then the database tests (a failure stops the deploy), then the build with base path `/<repo-name>/`, then publishes `dist/` to GitHub Pages.
+
+One-time setup:
+1. **Repository secrets** (GitHub → Settings → Secrets and variables → Actions → *New repository secret*):
+   - `VITE_SUPABASE_URL` = `https://<project-ref>.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = the anon / **publishable** key (never the service_role / secret key)
+
+   Or with the GitHub CLI:
+   ```bash
+   gh secret set VITE_SUPABASE_URL --body "https://<project-ref>.supabase.co"
+   gh secret set VITE_SUPABASE_ANON_KEY --body "<publishable key>"
+   ```
+2. **Turn on Pages:** GitHub → Settings → Pages → *Build and deployment* → Source: **GitHub Actions**. With the CLI: `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`.
+3. **Push:** `git push -u origin main`. Watch it under the *Actions* tab. The app goes live at `https://<owner>.github.io/<repo>/`.
+
+Later updates: just push to `main`. Open tills show **Update now** once the new version is downloaded.
+
+**Before the event:**
+1. Run `supabase/reset_test_data.sql` to remove all test sales, put the stock back, and restart invoices at #1.
+2. Import the real products (Stock → Import CSV), set the event start date and opening cash in Settings, and create staff accounts.
+3. On each tablet: open the site, log in, *Install app*, then Settings → printer → **Print test receipt**.
+4. Make one real test sale per till, void it, and confirm it shows in Reports.
 
 ### What's enforced in the database (not just hidden in the UI)
 
