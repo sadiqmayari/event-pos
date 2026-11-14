@@ -22,8 +22,20 @@ export const support = {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // ---------------- USB ----------------
+const WINDOWS_DRIVER_HELP =
+  'Windows is still using the printer\'s own driver, so the browser is not allowed to use it. ' +
+  'Run Zadig (zadig.akeo.ie) → Options → List All Devices → pick the printer → WinUSB → Replace Driver, ' +
+  'then unplug/replug the printer and press USB (direct) again. See README → Printing on Windows.'
+
 async function openUsb(device: USBDevice): Promise<PrinterTransport> {
-  if (!device.opened) await device.open()
+  if (!device.opened) {
+    try {
+      await device.open()
+    } catch (err) {
+      if (/access denied|security|not allowed/i.test((err as Error).message)) throw new Error(WINDOWS_DRIVER_HELP)
+      throw err
+    }
+  }
   if (!device.configuration) await device.selectConfiguration(1)
   let iface: number | null = null
   let endpoint: number | null = null
