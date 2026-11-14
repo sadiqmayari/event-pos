@@ -7,13 +7,8 @@ export function PrintHost() {
   const { doc, paper } = usePrintJob()
   return createPortal(
     <div id="print-root">
-      {doc && (
-        <>
-          {/* Paper size comes from the printer driver's roll setting (58/80 mm); we only remove margins. */}
-          <style>{'@page { margin: 0; }'}</style>
-          <ReceiptView doc={doc} paper={paper} />
-        </>
-      )}
+      {/* page size (roll width × receipt height) is set by setPrintPageSize() just before printing */}
+      {doc && <ReceiptView doc={doc} paper={paper} />}
     </div>,
     document.body,
   )

@@ -15,12 +15,13 @@
 }
 
 /* ---------- receipt printing ---------- */
-#print-root { display: none; }
+/* rendered off-screen (not display:none) so its height can be measured to set the paper length */
+#print-root { position: fixed; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
 
 @media print {
   html, body { background: #fff !important; margin: 0; padding: 0; }
   #root { display: none !important; }
-  #print-root { display: block; margin: 0 auto; }
+  #print-root { position: static; left: auto; visibility: visible; margin: 0 auto; }
   #print-root .receipt { margin: 0 auto; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

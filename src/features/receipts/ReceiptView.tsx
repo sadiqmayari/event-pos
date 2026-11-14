@@ -8,7 +8,7 @@ export function ReceiptView({ doc, paper }: { doc: ReceiptDoc; paper: 58 | 80 })
   const width = paper === 80 ? '72mm' : '48mm'
   const base = paper === 80 ? '12px' : '10.5px'
   return (
-    <div className="receipt bg-white text-black" style={{ width, fontSize: base, lineHeight: 1.35, fontFamily: 'ui-monospace, "Courier New", monospace', padding: '2mm 0' }}>
+    <div className="receipt bg-white text-black" style={{ width, fontSize: base, lineHeight: 1.35, fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 700, color: '#000', padding: '2mm 0' }}>
       {doc.banner && <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.3em', border: '2px solid #000', margin: '0 0 2mm' }}>{doc.banner}</div>}
       {doc.logo && <img src={doc.logo} alt="" style={{ display: 'block', margin: '0 auto 1mm', maxWidth: '60%', maxHeight: '22mm', objectFit: 'contain' }} />}
       <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.35em' }}>{doc.title}</div>
@@ -37,7 +37,7 @@ export function ReceiptView({ doc, paper }: { doc: ReceiptDoc; paper: 58 | 80 })
 
 function Row({ r }: { r: ReceiptRow }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2mm', fontWeight: r.bold ? 800 : 400, fontSize: r.big ? '1.3em' : undefined }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2mm', fontWeight: r.bold ? 900 : 700, fontSize: r.big ? '1.3em' : undefined }}>
       <span style={{ whiteSpace: 'pre-wrap' }}>{r.label}</span>
       <span style={{ whiteSpace: 'nowrap' }}>{r.value}</span>
     </div>
