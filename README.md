@@ -25,8 +25,9 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
    5. `supabase/migrations/005_receipt_settings.sql`
    6. `supabase/migrations/006_voids_reports.sql`
    7. `supabase/migrations/007_print_stations.sql`
-   8. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
-   9. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
+   8. `supabase/migrations/008_cashier_cashup.sql`
+   9. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
+   10. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
 4. **Create staff users:** open **Authentication → Users → Add user → Create new user**, enter an email and password, and tick *Auto confirm user*. Each new user gets a `profiles` row automatically, with the role **cashier**.
 5. **Make yourself admin** by running this once in the SQL Editor (use your email):
    ```sql
@@ -137,6 +138,12 @@ Phones and tablets without a printer can send their receipts to a laptop that ha
 **Reports (admin):** set the **event first day** and **number of days** in Settings first.
 - A table with one row per event day: invoices, items, gross, discounts, net sales, cash, card and voids, plus a total row. Tap a day for its details and **top products** (or choose *Whole event*).
 - **End-of-day cash count:** *expected in drawer* = opening cash (from Settings) + cash taken that day (cash sales net of change, plus the cash part of split payments). Enter the counted cash to see the difference (over/short) and save it. Saved counts are listed.
+- **Cash by cashier:** one row per cashier for the chosen day: invoices, sales, card, cash taken, float given, cash collected, and **still to collect** (float + cash sales − collected).
+  - **Give float:** records change money handed to a cashier. It's added to what they owe.
+  - **Collect cash:** shows what the cashier should hand over. Enter what you counted to see *exact / short / over*, then save. Collect as many times a day as you like; every collection keeps its expected amount and difference. **Show cash log** lists all floats and collections. Export CSV is available.
+  - Card sales are settled by the bank, so they're never collected from the cashier.
+  - Every cashier sees **My sales today** at the top of History, with their *cash to hand over*. They see only their own figures.
+- Offline sales count on the day they were actually made (the device's time), even if they sync later.
 - **Export:** Sales CSV (one row per invoice), Sales items CSV (one row per product line), Stock movements CSV, and a **Full backup** (all tables as JSON). Download a backup at the end of every day.
 
 Testing tip: run `select public.generate_fake_sales(50, 4);` in the SQL Editor, then open Reports. The days, cash and card split, top products and history should all be filled in. Then try voiding one sale and check its stock went back up on the Stock page.

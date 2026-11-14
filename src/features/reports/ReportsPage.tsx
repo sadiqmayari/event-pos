@@ -8,6 +8,7 @@ import { formatRs } from '../../lib/money'
 import { eventDayKeys, formatDateTime, formatDayKey, localDateKey, userTimeZone } from '../../lib/time'
 import { useSettings } from '../settings/useSettings'
 import { downloadFullBackup, exportSaleItems, exportSales, exportStockMovements } from './exports'
+import { CashierCashup } from './CashierCashup'
 
 interface DayRow {
   day: string; invoices: number; items: number; gross: number; discounts: number; total: number
@@ -139,6 +140,8 @@ export function ReportsPage() {
 
         <CashReconciliation days={days} defaultDay={days.includes(today) ? today : to} />
       </div>
+
+      <CashierCashup days={days} />
 
       <ExportsSection from={from} to={to} />
     </div>

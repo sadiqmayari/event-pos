@@ -7,6 +7,7 @@ import type { PaymentMethod } from '../../lib/types'
 import { useSettings } from '../settings/useSettings'
 import { useSalesList, useStaffList, type SalesFilter } from './useSales'
 import { SaleDetailDialog } from './SaleDetailDialog'
+import { MyShiftCard } from '../reports/CashierCashup'
 
 export function HistoryPage() {
   const { data: settings } = useSettings()
@@ -32,6 +33,8 @@ export function HistoryPage() {
         <h1 className="mr-auto text-2xl font-bold">Sales history</h1>
         {isFetching && <Spinner className="size-5 text-teal-700" />}
       </div>
+
+      <MyShiftCard />
 
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 md:grid-cols-3 xl:grid-cols-6">
         <Input inputMode="numeric" placeholder="Invoice #" value={f.invoice} onChange={(e) => set({ invoice: e.target.value.replace(/\D/g, '') })} />
