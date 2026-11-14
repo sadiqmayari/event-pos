@@ -119,7 +119,7 @@ If direct printing fails for any reason (unplugged, out of range, permission), t
 
 ### Print station: phones print on the laptop's printer
 
-Step-by-step guide with screenshots-free instructions for non-technical staff: [docs/Print-Station-Setup.docx](docs/Print-Station-Setup.docx).
+Step-by-step setup guide for whoever runs the printer laptop: [docs/Print-Station-Setup.docx](docs/Print-Station-Setup.docx).
 Phones and tablets without a printer can send their receipts to a laptop that has one.
 1. **On the laptop with the printer:** go to Settings, set up its printer (ideally **USB (direct)**, so there's no print dialog), then under **Print station** enter a name (e.g. "Counter printer") and press **Use this device as a print station**. A 🖨 badge appears in the header. Keep the app open (any page) and stop the laptop sleeping.
 2. **On each phone:** go to Settings → How to print → **Print station**, then choose the station.
