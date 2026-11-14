@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
 import { cx } from './ui'
 import { OfflineBanner, OfflineStatus } from '../features/offline/OfflineStatus'
+import { StationBadge } from '../features/receipts/StationPanel'
 
 
 const links: { to: string; label: string; admin?: boolean }[] = [
@@ -37,6 +38,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <StationBadge />
           <OfflineStatus />
           <div className="hidden text-right leading-tight sm:block">
             <div className="text-sm font-semibold">{profile?.full_name}</div>

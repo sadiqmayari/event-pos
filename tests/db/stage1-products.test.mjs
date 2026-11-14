@@ -73,5 +73,5 @@ const own = await one(ADMIN, `select active from public.profiles where id = $1`,
 check('inactive user still reads own profile', own.length === 1 && own[0].active === false)
 await expectErr('nobody can write audit log directly', /permission denied/, () => as(db, CASHIER, `insert into public.audit_log (action, entity) values ('x','y')`))
 const pub = (await db.query(`select tablename from pg_publication_tables where pubname='supabase_realtime' order by 1`)).rows.map(r => r.tablename).join()
-check('realtime publication has products, sales', pub === 'products,sales', pub)
+check('realtime publication has products, sales', pub.includes('products') && pub.includes('sales'), pub)
 summary()

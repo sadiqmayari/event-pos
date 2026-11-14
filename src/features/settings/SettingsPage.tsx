@@ -12,6 +12,7 @@ import { sampleSale } from '../receipts/sampleSale'
 import { shrinkLogo } from '../receipts/raster'
 import { getTransport, requestBluetooth, requestSerial, requestUsb, setTransport, support, type Connection } from '../receipts/transports'
 import { useSaveSettings, useSettings } from './useSettings'
+import { StationPicker, StationSetup } from '../receipts/StationPanel'
 
 export function SettingsPage() {
   const { isAdmin, profile } = useAuth()
@@ -113,7 +114,7 @@ export function SettingsPage() {
 
         <div>
           <div className="mb-1 text-sm font-medium text-slate-700">How to print</div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <ConnOption active={cfg.connection === 'none'} title="Browser printing" note="Works everywhere. Choose the receipt printer in the print dialog."
               onClick={() => { cfg.set({ connection: 'none' }); setTransport(null); setConnectedLabel(null) }} />
             <ConnOption active={cfg.connection === 'usb'} title="USB (direct)" note={support.usb ? 'Best on Android tablets with a USB-OTG cable.' : 'Not supported in this browser.'}
@@ -122,14 +123,18 @@ export function SettingsPage() {
               disabled={!support.bluetooth} busy={connecting === 'bluetooth'} onClick={() => void connect('bluetooth')} />
             <ConnOption active={cfg.connection === 'serial'} title="Serial / COM (direct)" note={support.serial ? 'For a printer that appears as a COM port (e.g. paired Bluetooth on Windows).' : 'Not supported in this browser.'}
               disabled={!support.serial} busy={connecting === 'serial'} onClick={() => void connect('serial')} />
+            <ConnOption active={cfg.connection === 'station'} title="Print station" note="No printer here: send receipts to the laptop that has one."
+              onClick={() => { cfg.set({ connection: 'station', stationEnabled: false }); setTransport(null); setConnectedLabel(null) }} />
           </div>
           <p className="mt-2 text-sm text-slate-600">
-            {cfg.connection === 'none' ? 'Receipts open the browser print dialog.'
+            {cfg.connection === 'station' ? (cfg.stationName ? <>Receipts print at <b>{cfg.stationName}</b>.</> : 'Choose the print station below.')
+              : cfg.connection === 'none' ? 'Receipts open the browser print dialog.'
               : connectedLabel ? <>Connected to <b>{connectedLabel}</b>. If direct printing fails, the app falls back to browser printing automatically.</>
               : 'Saved, not connected right now — the app reconnects automatically when it can, otherwise press the button above again.'}
           </p>
         </div>
-        {cfg.connection !== 'none' && (
+        <StationPicker />
+        {cfg.connection !== 'none' && cfg.connection !== 'station' && (
           <div className="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3">
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">Characters per line</span>
@@ -147,8 +152,12 @@ export function SettingsPage() {
           </div>
         )}
         {printerError && <ErrorBox>{printerError}</ErrorBox>}
-        <Button variant="secondary" onClick={() => void testPrint()}>Print test receipt</Button>
+        {cfg.connection === 'station'
+          ? <p className="text-sm text-slate-500">To test: make a sale (or Reprint last on the Sell screen) — the receipt should come out at the station within a few seconds.</p>
+          : <Button variant="secondary" onClick={() => void testPrint()}>Print test receipt</Button>}
       </section>
+
+      {cfg.connection !== 'station' && <StationSetup />}
 
       {/* ---------------- receipt design (admin) ---------------- */}
       <section className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-5 lg:grid-cols-[1fr_auto]">

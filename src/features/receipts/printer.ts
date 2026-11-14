@@ -5,11 +5,22 @@ import { getCachedSettings } from '../settings/useSettings'
 import { buildReceipt, type ReceiptDoc } from './receiptModel'
 import { receiptToEscPos, widthTestEscPos } from './escpos'
 import { ensureTransport, setTransport, type Connection } from './transports'
+import { sendToStation } from './printStation'
+
+export type PrintMode = Connection | 'station'
 
 /** Per-device printer setup (each till has its own printer). */
 interface PrinterConfig {
   paper: 58 | 80
-  connection: Connection
+  /** how THIS device prints: its own printer (usb/bluetooth/serial), browser dialog (none), or a print station */
+  connection: PrintMode
+  /** when connection = station: which station to send receipts to */
+  stationId: string | null
+  stationName: string | null
+  /** this device acts as a print station for others */
+  stationEnabled: boolean
+  myStationId: string | null
+  myStationName: string | null
   autoPrint: boolean
   /** characters per line for direct (ESC/POS) printing; null = default for the paper width */
   cols: number | null
@@ -18,7 +29,11 @@ interface PrinterConfig {
 
 export const usePrinterConfig = create<PrinterConfig>()(
   persist(
-    (set) => ({ paper: 80, connection: 'none', autoPrint: true, cols: null, set: (patch) => set(patch) }),
+    (set) => ({
+      paper: 80, connection: 'none', autoPrint: true, cols: null,
+      stationId: null, stationName: null, stationEnabled: false, myStationId: null, myStationName: null,
+      set: (patch) => set(patch),
+    }),
     { name: 'event-pos-printer' },
   ),
 )
@@ -26,13 +41,18 @@ export const usePrinterConfig = create<PrinterConfig>()(
 /** The receipt currently being sent to the browser's print dialog (rendered by <PrintHost />). */
 export const usePrintJob = create<{ doc: ReceiptDoc | null; paper: 58 | 80 }>(() => ({ doc: null, paper: 80 }))
 
-export interface PrintResult { via: 'direct' | 'browser'; warning?: string }
+export interface PrintResult { via: 'direct' | 'browser' | 'station'; station?: string; warning?: string }
+
+function myName(): string {
+  try { return (JSON.parse(localStorage.getItem('event-pos-profile') ?? 'null') as { full_name?: string } | null)?.full_name ?? '' } catch { return '' }
+}
 
 export async function printReceipt(sale: Sale, opts: { reprint?: boolean; test?: boolean } = {}): Promise<PrintResult> {
   const { paper, connection, cols } = usePrinterConfig.getState()
+  if (connection === 'station' && !opts.test) return sendToStation(sale, Boolean(opts.reprint), myName())
   const doc = buildReceipt(sale, getCachedSettings(), opts)
 
-  if (connection !== 'none') {
+  if (connection === 'usb' || connection === 'bluetooth' || connection === 'serial') {
     try {
       const bytes = await receiptToEscPos(doc, paper, cols)
       const t = await ensureTransport(connection)
@@ -97,6 +117,7 @@ export function setPrintPageSize(paper: 58 | 80): string {
 /** Prints the characters-per-line test on the direct printer. */
 export async function printWidthTest(): Promise<void> {
   const { paper, connection } = usePrinterConfig.getState()
+  if (connection === 'none' || connection === 'station') throw new Error('Choose a direct printer (USB / Bluetooth / Serial) first.')
   const t = await ensureTransport(connection)
   await t.write(widthTestEscPos(paper))
 }

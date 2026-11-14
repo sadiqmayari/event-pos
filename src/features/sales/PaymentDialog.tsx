@@ -11,13 +11,13 @@ import { enqueueSale, nextTempNo, setNetworkDown, useOutbox } from '../offline/o
 import { useAuth } from '../../auth/AuthProvider'
 import { printReceipt, usePrinterConfig } from '../receipts/printer'
 
-export type PrintStatus = { state: 'idle' | 'printing' | 'done'; via?: 'direct' | 'browser'; warning?: string }
+export type PrintStatus = { state: 'idle' | 'printing' | 'done'; via?: 'direct' | 'browser' | 'station'; station?: string; warning?: string }
 
 export async function runPrint(sale: Sale, reprint: boolean, set: (s: PrintStatus) => void) {
   set({ state: 'printing' })
   try {
     const r = await printReceipt(sale, { reprint })
-    set({ state: 'done', via: r.via, warning: r.warning })
+    set({ state: 'done', via: r.via, station: r.station, warning: r.warning })
   } catch (err) {
     set({ state: 'done', warning: (err as Error).message })
   }
@@ -288,7 +288,7 @@ function DoneView({ sale, onNext, print, onPrint }: { sale: Sale; onNext: () => 
           </div>
         )}
         {print.state === 'printing' && <p className="text-sm text-slate-500">Printing receipt…</p>}
-        {print.state === 'done' && !print.warning && <p className="text-sm text-emerald-700">{print.via === 'direct' ? 'Receipt sent to printer.' : 'Receipt sent to browser printing.'}</p>}
+        {print.state === 'done' && !print.warning && <p className="text-sm text-emerald-700">{print.via === 'station' ? `Printed at ${print.station}.` : print.via === 'direct' ? 'Receipt sent to printer.' : 'Receipt sent to browser printing.'}</p>}
         {print.warning && <p className="text-sm text-amber-700">{print.warning}</p>}
       </div>
     </Modal>

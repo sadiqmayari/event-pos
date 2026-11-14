@@ -20,6 +20,7 @@ export interface OutboxItem {
   queued_at: string
   attempts: number
   status: 'pending' | 'failed'   // failed = the server rejected it; needs an admin
+  wants_print?: boolean           // print at the print station once synced
   last_error: string | null
 }
 

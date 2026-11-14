@@ -24,8 +24,9 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
    4. `supabase/migrations/004_sales.sql`
    5. `supabase/migrations/005_receipt_settings.sql`
    6. `supabase/migrations/006_voids_reports.sql`
-   7. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
-   8. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
+   7. `supabase/migrations/007_print_stations.sql`
+   8. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
+   9. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
 4. **Create staff users:** open **Authentication → Users → Add user → Create new user**, enter an email and password, and tick *Auto confirm user*. Each new user gets a `profiles` row automatically, with the role **cashier**.
 5. **Make yourself admin** by running this once in the SQL Editor (use your email):
    ```sql
@@ -113,6 +114,13 @@ Every sale has a sequential invoice number, date/time (in the device's timezone)
 If direct printing fails for any reason (unplugged, out of range, permission), the app **falls back to browser printing automatically** and shows why.
 
 **Reprinting:** after a sale, the "Sale complete" screen has **Print receipt** / **Reprint**. The Sell screen has **Reprint last** for the last receipt from this device. Reprints are marked "REPRINT". Stage 4 adds reprinting any receipt from Sales history.
+
+### Print station: phones print on the laptop's printer
+Phones and tablets without a printer can send their receipts to a laptop that has one.
+1. **On the laptop with the printer:** go to Settings, set up its printer (ideally **USB (direct)**, so there's no print dialog), then under **Print station** enter a name (e.g. "Counter printer") and press **Use this device as a print station**. A 🖨 badge appears in the header. Keep the app open (any page) and stop the laptop sleeping.
+2. **On each phone:** go to Settings → How to print → **Print station**, then choose the station.
+3. Receipts from the phone (auto-print after a sale, **Reprint last**, reprints from History) print at the laptop within a few seconds. The phone shows "Printed at Counter printer". If the laptop is off, jobs wait and print when it comes back. Offline sales print once they sync.
+4. The station's Settings page lists recent jobs. Failed ones can be retried there.
 
 ### Black Copper BC-86AC: recommended setup
 - **Android tablet (Chrome):** connect the printer with a USB-OTG cable. Choose **Settings → USB (direct)**, pick the printer, then **Print test receipt**. This is the fastest option, with no print dialog.

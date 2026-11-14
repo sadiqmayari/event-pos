@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../../components/Toast'
 import { getLastSale, rememberLastSale, submitSale } from '../sales/submitSale'
 import { markSynced, setNetworkDown, updateItem, useOutbox } from './outbox'
+import { sendQueuedPrint } from '../receipts/printStation'
 
 let running: Promise<SyncResult> | null = null
 
@@ -24,6 +25,7 @@ async function run(): Promise<SyncResult> {
     if (res.ok) {
       markSynced(item, res.sale.invoice_no)
       if (getLastSale()?.id === item.id) rememberLastSale(res.sale) // "Reprint last" now shows the real invoice number
+      if (item.wants_print) void sendQueuedPrint(res.sale, item.preview.cashier_name)
       result.synced.push({ temp_no: item.temp_no, invoice_no: res.sale.invoice_no })
       continue
     }
