@@ -121,8 +121,10 @@ async function printJobLocally(job: PrintJob) {
  * Runs while this device is a print station: picks up queued jobs (Realtime + a 20 s safety poll),
  * prints them one at a time, and checks in every minute so phones can see the station is online.
  */
-export function usePrintStationWorker() {
-  const { stationEnabled, myStationId } = usePrinterConfig()
+/** Only runs for an admin login — print stations are admin-only (see migration 009). */
+export function usePrintStationWorker(isAdmin: boolean) {
+  const { stationEnabled: enabled, myStationId } = usePrinterConfig()
+  const stationEnabled = enabled && isAdmin
   const qc = useQueryClient()
   const chain = useRef<Promise<void>>(Promise.resolve())
   const [lastError, setLastError] = useState<string | null>(null)

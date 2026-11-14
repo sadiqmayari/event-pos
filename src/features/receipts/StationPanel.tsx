@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { useAuth } from '../../auth/AuthProvider'
 import { Badge, Button, cx, ErrorBox, Input, Select } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { errorMessage } from '../../lib/errors'
@@ -11,8 +12,9 @@ import { registerStation, retryJob, stationOnline, usePrintStationWorker, useSta
 /** Header badge on a print-station laptop. Also runs the station worker (must stay mounted). */
 export function StationBadge() {
   const { stationEnabled, myStationName } = usePrinterConfig()
-  const { lastError } = usePrintStationWorker()
-  if (!stationEnabled) return null
+  const { isAdmin } = useAuth()
+  const { lastError } = usePrintStationWorker(isAdmin)
+  if (!stationEnabled || !isAdmin) return null
   return (
     <Link to="/settings" title={lastError ?? 'This device prints receipts for other devices'}>
       <Badge tone={lastError ? 'red' : 'teal'}>🖨 {myStationName}{lastError ? ' · error' : ''}</Badge>
@@ -74,7 +76,7 @@ export function StationSetup() {
         {cfg.stationEnabled ? <Badge tone="teal">Active · {cfg.myStationName}</Badge> : <Badge>Off</Badge>}
       </div>
       <p className="text-sm text-slate-600">
-        Turn this on for the laptop that has the receipt printer. Phones and tablets set to “Print station” will print here.
+        Turn this on for the laptop that has the receipt printer (it must stay logged in as an admin). Phones and tablets set to “Print station” will print here.
         Keep the app open on this device (it can stay on any page) and stop it going to sleep.
         Use <b>USB (direct)</b> above so receipts print without a dialog.
       </p>

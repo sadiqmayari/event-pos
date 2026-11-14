@@ -26,6 +26,7 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
    6. `supabase/migrations/006_voids_reports.sql`
    7. `supabase/migrations/007_print_stations.sql`
    8. `supabase/migrations/008_cashier_cashup.sql`
+   9. `supabase/migrations/009_cashier_privacy.sql`
    9. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
    10. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
 4. **Create staff users:** open **Authentication → Users → Add user → Create new user**, enter an email and password, and tick *Auto confirm user*. Each new user gets a `profiles` row automatically, with the role **cashier**.
@@ -192,7 +193,8 @@ Later updates: just push to `main`. Open tills show **Update now** once the new 
 ### What's enforced in the database (not just hidden in the UI)
 
 - Anonymous visitors can't read or write anything.
-- Cashiers can read products and sales but can't change products, prices or stock.
+- Cashiers see only **their own** sales (History shows “My sales”), have no Stock tab, and can't change products, prices or stock. Admins see everything.
+- Only an **admin** login can run a print station; cashiers can only send print jobs to it.
 - Only admins can void (`void_sale`: stock restored, ledger + audit written) or see reports and cash counts.
 - A sale can only be recorded by `create_sale`, which locks the products, re-checks stock, recalculates every total, discount and change amount on the server, and takes the next gapless invoice number, all in one transaction.
 - **Nobody can edit `stock_qty` directly, admins included.** Stock only changes through `adjust_stock`, `import_products` and (from Stage 2) the sale and void functions. Each of those writes a row to `stock_movements`, so the stock ledger is always complete.

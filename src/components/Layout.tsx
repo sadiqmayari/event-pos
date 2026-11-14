@@ -7,7 +7,7 @@ import { StationBadge } from '../features/receipts/StationPanel'
 
 const links: { to: string; label: string; admin?: boolean }[] = [
   { to: '/', label: 'Sell' },
-  { to: '/products', label: 'Stock' },
+  { to: '/products', label: 'Stock', admin: true },
   { to: '/history', label: 'History' },
   { to: '/reports', label: 'Reports', admin: true },
   { to: '/staff', label: 'Staff', admin: true },

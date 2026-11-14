@@ -157,7 +157,7 @@ export function SettingsPage() {
           : <Button variant="secondary" onClick={() => void testPrint()}>Print test receipt</Button>}
       </section>
 
-      {cfg.connection !== 'station' && <StationSetup />}
+      {isAdmin && cfg.connection !== 'station' && <StationSetup />}
 
       {/* ---------------- receipt design (admin) ---------------- */}
       <section className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-5 lg:grid-cols-[1fr_auto]">

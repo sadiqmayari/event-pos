@@ -10,7 +10,7 @@ const sale = (await one(CASHIER, `select public.create_sale($1::jsonb) as s`, [J
 console.log('print stations')
 const st = (await one(ADMIN, `insert into public.print_stations (name, device_id) values ('Counter', 'LAP1') returning *`))[0]
 check('staff can register a station', Boolean(st.id))
-await expectErr('station names are unique', /duplicate|unique/, () => as(db, CASHIER, `insert into public.print_stations (name) values ('Counter')`))
+await expectErr('station names are unique', /duplicate|unique/, () => as(db, ADMIN, `insert into public.print_stations (name) values ('Counter')`))
 await expectErr('anon cannot see stations', /permission denied/, () => as(db, null, `select * from public.print_stations`))
 
 const job = (await one(CASHIER, `insert into public.print_jobs (station_id, sale_id, requested_by_name, requested_device)
@@ -21,7 +21,7 @@ await expectErr('cannot queue a job in someone else\'s name', /row-level securit
 
 // two station windows racing for the same job: only one claim succeeds
 const c1 = await one(ADMIN, `update public.print_jobs set status = 'printing' where id = $1 and status = 'queued' returning id`, [job.id])
-const c2 = await one(CASHIER, `update public.print_jobs set status = 'printing' where id = $1 and status = 'queued' returning id`, [job.id])
+const c2 = await one(ADMIN, `update public.print_jobs set status = 'printing' where id = $1 and status = 'queued' returning id`, [job.id])
 check('only one station claims the job', c1.length === 1 && c2.length === 0)
 await one(ADMIN, `update public.print_jobs set status = 'printed', printed_at = now() where id = $1`, [job.id])
 check('job marked printed', (await one(CASHIER, `select status from public.print_jobs where id = $1`, [job.id]))[0].status === 'printed')

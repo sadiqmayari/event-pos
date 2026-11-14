@@ -8,9 +8,11 @@ import { useSettings } from '../settings/useSettings'
 import { useSalesList, useStaffList, type SalesFilter } from './useSales'
 import { SaleDetailDialog } from './SaleDetailDialog'
 import { MyShiftCard } from '../reports/CashierCashup'
+import { useAuth } from '../../auth/AuthProvider'
 
 export function HistoryPage() {
   const { data: settings } = useSettings()
+  const { isAdmin } = useAuth()
   const staff = useStaffList()
   const [f, setF] = useState<SalesFilter>({ day: localDateKey(), invoice: '', cashierId: '', method: '', status: '', limit: 100 })
   const [open, setOpen] = useState<string | null>(null)
@@ -30,7 +32,7 @@ export function HistoryPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="mr-auto text-2xl font-bold">Sales history</h1>
+        <h1 className="mr-auto text-2xl font-bold">{isAdmin ? 'Sales history' : 'My sales'}</h1>
         {isFetching && <Spinner className="size-5 text-teal-700" />}
       </div>
 
@@ -43,10 +45,12 @@ export function HistoryPage() {
           {days.map((d) => <option key={d} value={d}>{formatDayKey(d)}{d === localDateKey() ? ' (today)' : ''}</option>)}
         </Select>
         <Input type="date" className="w-auto" value={f.day ?? ''} onChange={(e) => set({ day: e.target.value || null })} disabled={Boolean(f.invoice)} />
-        <Select className="w-auto" value={f.cashierId} onChange={(e) => set({ cashierId: e.target.value })}>
-          <option value="">All cashiers</option>
-          {(staff.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-        </Select>
+        {isAdmin && (
+          <Select className="w-auto" value={f.cashierId} onChange={(e) => set({ cashierId: e.target.value })}>
+            <option value="">All cashiers</option>
+            {(staff.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+          </Select>
+        )}
         <Select className="w-auto" value={f.method} onChange={(e) => set({ method: e.target.value as PaymentMethod | '' })}>
           <option value="">All payments</option>
           <option value="cash">Cash</option>

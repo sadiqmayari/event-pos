@@ -25,7 +25,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireRole><Layout /></RequireRole>}>
             <Route index element={<SalesPage />} />
-            <Route path="products" element={<ProductsPage />} />
+            <Route path="products" element={<RequireRole role="admin"><ProductsPage /></RequireRole>} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="reports" element={<RequireRole role="admin"><ReportsPage /></RequireRole>} />
             <Route path="settings" element={<SettingsPage />} />
