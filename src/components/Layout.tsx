@@ -1,16 +1,8 @@
-import { useSyncExternalStore } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
-import { Badge, cx } from './ui'
+import { cx } from './ui'
+import { OfflineBanner, OfflineStatus } from '../features/offline/OfflineStatus'
 
-function subscribeOnline(cb: () => void) {
-  window.addEventListener('online', cb)
-  window.addEventListener('offline', cb)
-  return () => { window.removeEventListener('online', cb); window.removeEventListener('offline', cb) }
-}
-export function useOnline() {
-  return useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true)
-}
 
 const links: { to: string; label: string; admin?: boolean }[] = [
   { to: '/', label: 'Sell' },
@@ -23,7 +15,6 @@ const links: { to: string; label: string; admin?: boolean }[] = [
 
 export function Layout() {
   const { profile, isAdmin, signOut } = useAuth()
-  const online = useOnline()
 
   return (
     <div className="flex h-dvh flex-col">
@@ -46,7 +37,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          {online ? <Badge tone="green">● Online</Badge> : <Badge tone="red">● Offline</Badge>}
+          <OfflineStatus />
           <div className="hidden text-right leading-tight sm:block">
             <div className="text-sm font-semibold">{profile?.full_name}</div>
             <div className="text-xs capitalize text-slate-400">{profile?.role}</div>
@@ -54,6 +45,7 @@ export function Layout() {
           <button type="button" onClick={() => void signOut()} className="h-11 rounded-lg px-3 text-sm text-slate-300 hover:bg-slate-800">Log out</button>
         </div>
       </header>
+      <OfflineBanner />
       <main className="min-h-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>

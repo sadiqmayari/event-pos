@@ -10,6 +10,7 @@ import { HistoryPage } from './features/history/HistoryPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { PrintHost } from './features/receipts/PrintHost'
+import { UpdateBanner } from './features/offline/UpdateBanner'
 import { supabaseConfigured } from './lib/supabase'
 
 // HashRouter: GitHub Pages has no SPA fallback, so /#/products survives a refresh.
@@ -19,6 +20,7 @@ export default function App() {
     <HashRouter>
       <AuthProvider>
         <PrintHost />
+        <UpdateBanner />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireRole><Layout /></RequireRole>}>

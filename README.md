@@ -8,7 +8,7 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
 | 2. Sales screen | ✅ done |
 | 3. Invoices & printing (Black Copper BC-86AC) | ✅ done |
 | 4. History, voids, reports | ✅ done |
-| 5. Offline queue + PWA | ⏳ |
+| 5. Offline queue + PWA | ✅ done |
 | 6. GitHub Pages deployment | ⏳ |
 
 ---
@@ -132,6 +132,22 @@ If direct printing fails for any reason (unplugged, out of range, permission), t
 - **Export:** Sales CSV (one row per invoice), Sales items CSV (one row per product line), Stock movements CSV, and a **Full backup** (all tables as JSON). Download a backup at the end of every day.
 
 Testing tip: run `select public.generate_fake_sales(50, 4);` in the SQL Editor, then open Reports. The days, cash and card split, top products and history should all be filled in. Then try voiding one sale and check its stock went back up on the Stock page.
+
+## 8. Offline & PWA (Stage 5)
+
+**Install it like an app:** in Chrome on the tablet, open the site and use *Install app* / *Add to Home screen*. The whole app is cached by a service worker, so it opens instantly and keeps working on poor wifi. When a new version is deployed, an **Update now** button appears; the app never reloads on its own in the middle of a sale.
+
+**Selling offline:**
+- The header shows **● Online** or **● Offline**, with a red strip under it while offline. Offline is detected from the browser *and* from failed requests (wifi connected but no internet counts as offline).
+- The product list and stock come from this device's last known copy. Stock already sold offline on this device is subtracted, so you can't sell more than you have.
+- **Complete sale** stores the sale on the device (written synchronously, so it survives reloads and closed tabs) **before** showing it as done. The screen shows *Saved on this device (offline)* with a temporary number like **T-N93V-0001** instead of a green invoice number. The receipt prints with that number.
+- If the server can't be reached while online (timeout, flaky wifi), the sale is queued the same way. Each sale keeps its own id, so if it actually did reach the server, syncing returns the existing invoice and never records it twice.
+
+**Syncing:** automatic when the connection returns, plus every 20 seconds while sales are waiting. The amber **N to sync** badge counts down, and a toast says e.g. *T-N93V-0001 synced as invoice #57*. Tap the badge to see the queue, **Sync now**, reprint, or **Download this device's data** (a backup of everything waiting).
+
+**Needs attention:** if the server refuses a queued sale (e.g. another till sold the last units while this one was offline), it gets a red **needs attention** badge and is never thrown away silently. An admin fixes the stock and presses **Retry**. **Discard** (admin only) downloads a copy first.
+
+**Testing it:** in Chrome DevTools → Network, choose *Offline*. Make a sale; you should see the temporary number and the "1 to sync" badge. Switch back to *No throttling*; within a few seconds it syncs and appears in History with a real invoice number, and the stock updates on every device.
 
 ### What's enforced in the database (not just hidden in the UI)
 

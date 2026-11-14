@@ -6,7 +6,9 @@ import type { Totals } from '../../lib/pricing'
 import type { PaymentMethod, Sale } from '../../lib/types'
 import type { AppError } from '../../lib/errors'
 import { useCart } from './cartStore'
-import { buildPayload, rememberLastSale, submitSale, type PriceChange, type StockShortage } from './submitSale'
+import { buildLocalSale, buildPayload, rememberLastSale, submitSale, type PriceChange, type StockShortage } from './submitSale'
+import { enqueueSale, nextTempNo, setNetworkDown, useOutbox } from '../offline/outbox'
+import { useAuth } from '../../auth/AuthProvider'
 import { printReceipt, usePrinterConfig } from '../receipts/printer'
 
 export type PrintStatus = { state: 'idle' | 'printing' | 'done'; via?: 'direct' | 'browser'; warning?: string }
@@ -43,6 +45,7 @@ export function PaymentDialog({ open, totals, onClose, onFixStock, onFixPrices }
   onFixPrices: (c: PriceChange[]) => void
 }) {
   const { lines, billDiscount, ensureSaleId, clear } = useCart()
+  const { profile, session } = useAuth()
   const [phase, setPhase] = useState<Phase>({ kind: 'form' })
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [received, setReceived] = useState('')
@@ -70,17 +73,35 @@ export function PaymentDialog({ open, totals, onClose, onFixStock, onFixPrices }
   async function complete() {
     if (problem) return
     setPhase({ kind: 'saving' })
-    const payload = buildPayload(ensureSaleId(), lines, billDiscount, {
-      method, cashReceived: method === 'card' ? null : receivedN, cardAmount: method === 'split' ? cardN : null, cardRef,
-    })
-    const res = await submitSale(payload)
-    if (res.ok) {
-      rememberLastSale(res.sale)
-      clear() // the sale is safely in the database — the cart can go
-      setPhase({ kind: 'done', sale: res.sale })
-      if (usePrinterConfig.getState().autoPrint) void runPrint(res.sale, false, setPrint)
-    } else {
-      setPhase({ kind: 'error', error: res.error, shortages: res.shortages, priceChanges: res.priceChanges })
+    const saleId = ensureSaleId()
+    const pay = { method, cashReceived: method === 'card' ? null : receivedN, cardAmount: method === 'split' ? cardN : null, cardRef }
+    const finish = (sale: Sale) => {
+      rememberLastSale(sale)
+      clear() // the sale is safely stored — the cart can go
+      setPhase({ kind: 'done', sale })
+      if (usePrinterConfig.getState().autoPrint) void runPrint(sale, false, setPrint)
+    }
+
+    // 1) online: wait for the database to confirm (shorter wait if the network was already flaky)
+    if (navigator.onLine) {
+      const res = await submitSale(buildPayload(saleId, lines, billDiscount, pay), useOutbox.getState().networkDown ? 6_000 : 20_000)
+      if (res.ok) return finish(res.sale)
+      if (res.error.code !== 'NETWORK') {
+        return setPhase({ kind: 'error', error: res.error, shortages: res.shortages, priceChanges: res.priceChanges })
+      }
+    }
+
+    // 2) offline (or the server could not be reached): keep the sale on this device and sync it later.
+    //    Same sale id, so if it actually reached the server, syncing will not record it twice.
+    try {
+      const temp = nextTempNo()
+      const payload = buildPayload(saleId, lines, billDiscount, pay, { offline: true, temp_no: temp })
+      const preview = buildLocalSale(payload, totals, { id: session?.user.id ?? '', name: profile?.full_name ?? 'Cashier' })
+      enqueueSale({ id: saleId, temp_no: temp, payload, preview })
+      setNetworkDown(true)
+      finish(preview)
+    } catch (err) {
+      setPhase({ kind: 'error', error: { code: 'STORAGE', message: 'Could not save the sale on this device: ' + (err as Error).message } })
     }
   }
 
@@ -238,11 +259,22 @@ function DoneView({ sale, onNext, print, onPrint }: { sale: Sale; onNext: () => 
         <Button variant="success" size="lg" className="flex-[2]" autoFocus onClick={onNext}>New sale</Button>
       </div>}>
       <div className="space-y-4 text-center">
-        <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-4xl text-emerald-700">✓</div>
-        <div>
-          <div className="text-slate-500">Saved · Invoice</div>
-          <div className="text-3xl font-black">#{sale.invoice_no}</div>
-        </div>
+        {sale.invoice_no ? (
+          <>
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-4xl text-emerald-700">✓</div>
+            <div>
+              <div className="text-slate-500">Saved · Invoice</div>
+              <div className="text-3xl font-black">#{sale.invoice_no}</div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-amber-50 p-4 text-amber-900">
+            <div className="text-3xl">📥</div>
+            <div className="font-bold">Saved on this device (offline)</div>
+            <div className="text-2xl font-black">{sale.temp_no}</div>
+            <div className="text-sm">It gets its invoice number automatically when the connection returns.</div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 text-left">
           <Info label="Total" value={formatRs(sale.total)} />
           <Info label="Paid by" value={sale.payment_method === 'split' ? 'Cash + Card' : sale.payment_method} />

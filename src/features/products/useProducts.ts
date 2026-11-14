@@ -5,6 +5,12 @@ import { supabase } from '../../lib/supabase'
 import type { Product, StockMovement } from '../../lib/types'
 
 export const PRODUCTS_KEY = ['products'] as const
+const CACHE_KEY = 'event-pos-products-cache'
+
+/** Last known product list, so the sales screen works offline and opens instantly. */
+function readCache(): Product[] | undefined {
+  try { return (JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null') as Product[] | null) ?? undefined } catch { return undefined }
+}
 
 async function fetchAllProducts(): Promise<Product[]> {
   // PostgREST caps rows per request (default 1000), so page through.
@@ -27,11 +33,17 @@ function sortByName(a: Product, b: Product) {
 /** All products, kept live via Supabase Realtime (stock changes on other tills appear instantly). */
 export function useProducts() {
   const qc = useQueryClient()
-  const query = useQuery({ queryKey: PRODUCTS_KEY, queryFn: fetchAllProducts, staleTime: 60_000 })
+  const query = useQuery({ queryKey: PRODUCTS_KEY, queryFn: fetchAllProducts, staleTime: 60_000, initialData: readCache, initialDataUpdatedAt: 0 })
+
+  useEffect(() => {
+    if (query.data) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(query.data)) } catch { /* storage full: not fatal */ }
+    }
+  }, [query.data])
 
   useEffect(() => {
     const channel = supabase
-      .channel('products-live')
+      .channel(`products-live-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' },
         (payload: RealtimePostgresChangesPayload<Product>) => {
           qc.setQueryData<Product[]>(PRODUCTS_KEY, (old) => {

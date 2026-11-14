@@ -18,7 +18,7 @@ export function useSalesList(f: SalesFilter) {
 
   // any sale created/voided on any till → refresh the list
   useEffect(() => {
-    const ch = supabase.channel('sales-live')
+    const ch = supabase.channel(`sales-live-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
         void qc.invalidateQueries({ queryKey: ['sales'] })
       })

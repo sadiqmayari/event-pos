@@ -6,6 +6,7 @@ import { computeTotals } from '../../lib/pricing'
 import type { Product } from '../../lib/types'
 import { useProducts } from '../products/useProducts'
 import { useCart } from './cartStore'
+import { pendingQtyByProduct, useOutbox } from '../offline/outbox'
 import { ProductGrid } from './ProductGrid'
 import { CartPanel } from './CartPanel'
 import { LineEditDialog } from './LineEditDialog'
@@ -15,7 +16,13 @@ import { getLastSale } from './submitSale'
 
 export function SalesPage() {
   const toast = useToast()
-  const { products, categories, isLoading, error } = useProducts()
+  const { products: serverProducts, categories, isLoading, error } = useProducts()
+  const outbox = useOutbox((s) => s.items)
+  // stock still to be deducted by sales waiting in the offline queue
+  const products = useMemo(() => {
+    const pending = pendingQtyByProduct(outbox)
+    return pending.size ? serverProducts.map((p) => ({ ...p, stock_qty: p.stock_qty - (pending.get(p.id) ?? 0) })) : serverProducts
+  }, [serverProducts, outbox])
   const { lines, billDiscount, add, setQty, remove, setPrice } = useCart()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -79,7 +86,7 @@ export function SalesPage() {
     }
   }
 
-  if (error) return <div className="p-6"><ErrorBox>Could not load products: {errorMessage(error)}</ErrorBox></div>
+  if (error && !products.length) return <div className="p-6"><ErrorBox>Could not load products: {errorMessage(error)}</ErrorBox></div>
 
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
