@@ -9,12 +9,13 @@ export class EscPos {
   private parts: number[] = []
   readonly cols: number
 
-  constructor(readonly paper: 58 | 80) {
-    this.cols = paper === 80 ? 48 : 32 // characters per line, font A
+  /** cols: characters per line in font A. Default 48 (80 mm) / 32 (58 mm); some printers fit more or fewer. */
+  constructor(readonly paper: 58 | 80, cols?: number | null) {
+    this.cols = cols || (paper === 80 ? 48 : 32)
   }
 
   raw(bytes: ArrayLike<number>) { for (let i = 0; i < bytes.length; i++) this.parts.push(bytes[i]); return this }
-  init() { return this.raw([ESC, 0x40, ESC, 0x74, 0x00]) } // reset + code page PC437
+  init() { return this.raw([ESC, 0x40, ESC, 0x74, 0x00, ESC, 0x4d, 0x00]) } // reset + code page PC437 + font A
   align(a: 'left' | 'center' | 'right') { return this.raw([ESC, 0x61, a === 'left' ? 0 : a === 'center' ? 1 : 2]) }
   bold(on: boolean) { return this.raw([ESC, 0x45, on ? 1 : 0]) }
   /** 1 = normal, 2 = double width+height */
@@ -85,8 +86,8 @@ export function wrap(s: string, width: number): string[] {
   return lines.length ? lines : ['']
 }
 
-export async function receiptToEscPos(doc: ReceiptDoc, paper: 58 | 80): Promise<Uint8Array> {
-  const p = new EscPos(paper)
+export async function receiptToEscPos(doc: ReceiptDoc, paper: 58 | 80, cols?: number | null): Promise<Uint8Array> {
+  const p = new EscPos(paper, cols)
   const rows = (rs: ReceiptRow[]) => rs.forEach((r) => {
     if (r.big) { p.bold(true).size(2).row(r.label, r.value, Math.floor(p.cols / 2)).size(1).bold(false) }
     else { p.bold(Boolean(r.bold)).row(r.label, r.value).bold(false) }
@@ -123,4 +124,18 @@ export async function receiptToEscPos(doc: ReceiptDoc, paper: 58 | 80): Promise<
   if (doc.banner) p.bold(true).line(doc.banner).bold(false)
   p.align('left').feed(2).cut()
   return p.bytes()
+}
+
+/**
+ * Width test: one line per candidate width. The longest line that still prints on ONE line
+ * (ending in "<") is the right "characters per line" setting for this printer.
+ */
+export function widthTestEscPos(paper: 58 | 80): Uint8Array {
+  const p = new EscPos(paper)
+  p.init().align('center').bold(true).line('WIDTH TEST').bold(false).line('Pick the longest line that fits').line('on ONE line (ends with <)').align('left').line()
+  for (const w of [32, 42, 44, 46, 48, 52, 56, 64]) {
+    const label = String(w)
+    p.line(label + '-'.repeat(w - label.length - 1) + '<')
+  }
+  return p.feed(2).cut().bytes()
 }

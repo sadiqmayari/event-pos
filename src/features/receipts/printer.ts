@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Sale } from '../../lib/types'
 import { getCachedSettings } from '../settings/useSettings'
 import { buildReceipt, type ReceiptDoc } from './receiptModel'
-import { receiptToEscPos } from './escpos'
+import { receiptToEscPos, widthTestEscPos } from './escpos'
 import { ensureTransport, setTransport, type Connection } from './transports'
 
 /** Per-device printer setup (each till has its own printer). */
@@ -11,12 +11,14 @@ interface PrinterConfig {
   paper: 58 | 80
   connection: Connection
   autoPrint: boolean
+  /** characters per line for direct (ESC/POS) printing; null = default for the paper width */
+  cols: number | null
   set: (patch: Partial<Omit<PrinterConfig, 'set'>>) => void
 }
 
 export const usePrinterConfig = create<PrinterConfig>()(
   persist(
-    (set) => ({ paper: 80, connection: 'none', autoPrint: true, set: (patch) => set(patch) }),
+    (set) => ({ paper: 80, connection: 'none', autoPrint: true, cols: null, set: (patch) => set(patch) }),
     { name: 'event-pos-printer' },
   ),
 )
@@ -27,12 +29,12 @@ export const usePrintJob = create<{ doc: ReceiptDoc | null; paper: 58 | 80 }>(()
 export interface PrintResult { via: 'direct' | 'browser'; warning?: string }
 
 export async function printReceipt(sale: Sale, opts: { reprint?: boolean; test?: boolean } = {}): Promise<PrintResult> {
-  const { paper, connection } = usePrinterConfig.getState()
+  const { paper, connection, cols } = usePrinterConfig.getState()
   const doc = buildReceipt(sale, getCachedSettings(), opts)
 
   if (connection !== 'none') {
     try {
-      const bytes = await receiptToEscPos(doc, paper)
+      const bytes = await receiptToEscPos(doc, paper, cols)
       const t = await ensureTransport(connection)
       await t.write(bytes)
       return { via: 'direct' }
@@ -90,4 +92,11 @@ export function setPrintPageSize(paper: 58 | 80): string {
   }
   style.textContent = css
   return css
+}
+
+/** Prints the characters-per-line test on the direct printer. */
+export async function printWidthTest(): Promise<void> {
+  const { paper, connection } = usePrinterConfig.getState()
+  const t = await ensureTransport(connection)
+  await t.write(widthTestEscPos(paper))
 }

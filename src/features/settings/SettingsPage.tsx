@@ -7,7 +7,7 @@ import { getDeviceId } from '../../lib/device'
 import { userTimeZone } from '../../lib/time'
 import { buildReceipt } from '../receipts/receiptModel'
 import { ReceiptView } from '../receipts/ReceiptView'
-import { printReceipt, usePrinterConfig } from '../receipts/printer'
+import { printReceipt, printWidthTest, usePrinterConfig } from '../receipts/printer'
 import { sampleSale } from '../receipts/sampleSale'
 import { shrinkLogo } from '../receipts/raster'
 import { getTransport, requestBluetooth, requestSerial, requestUsb, setTransport, support, type Connection } from '../receipts/transports'
@@ -129,6 +129,23 @@ export function SettingsPage() {
               : 'Saved, not connected right now — the app reconnects automatically when it can, otherwise press the button above again.'}
           </p>
         </div>
+        {cfg.connection !== 'none' && (
+          <div className="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3">
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Characters per line</span>
+              <select className="h-12 rounded-xl border border-slate-300 bg-white px-3" value={cfg.cols ?? ''}
+                onChange={(e) => cfg.set({ cols: e.target.value ? Number(e.target.value) : null })}>
+                <option value="">Default ({cfg.paper === 80 ? 48 : 32})</option>
+                {[32, 42, 44, 46, 48, 52, 56, 64].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <Button variant="secondary" onClick={() => void printWidthTest().catch((e) => setPrinterError((e as Error).message))}>Print width test</Button>
+            <p className="min-w-60 flex-1 text-sm text-slate-600">
+              If the middle of the receipt is not centred or lines wrap: print the width test, find the longest line that
+              prints on one line, and choose that number here.
+            </p>
+          </div>
+        )}
         {printerError && <ErrorBox>{printerError}</ErrorBox>}
         <Button variant="secondary" onClick={() => void testPrint()}>Print test receipt</Button>
       </section>
