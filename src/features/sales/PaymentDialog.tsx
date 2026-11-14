@@ -7,6 +7,19 @@ import type { PaymentMethod, Sale } from '../../lib/types'
 import type { AppError } from '../../lib/errors'
 import { useCart } from './cartStore'
 import { buildPayload, rememberLastSale, submitSale, type PriceChange, type StockShortage } from './submitSale'
+import { printReceipt, usePrinterConfig } from '../receipts/printer'
+
+export type PrintStatus = { state: 'idle' | 'printing' | 'done'; via?: 'direct' | 'browser'; warning?: string }
+
+export async function runPrint(sale: Sale, reprint: boolean, set: (s: PrintStatus) => void) {
+  set({ state: 'printing' })
+  try {
+    const r = await printReceipt(sale, { reprint })
+    set({ state: 'done', via: r.via, warning: r.warning })
+  } catch (err) {
+    set({ state: 'done', warning: (err as Error).message })
+  }
+}
 
 type Phase =
   | { kind: 'form' }
@@ -36,9 +49,10 @@ export function PaymentDialog({ open, totals, onClose, onFixStock, onFixPrices }
   const [card, setCard] = useState('')
   const [cardRef, setCardRef] = useState('')
   const [field, setField] = useState<Field>('received')
+  const [print, setPrint] = useState<PrintStatus>({ state: 'idle' })
 
   useEffect(() => {
-    if (open) { setPhase({ kind: 'form' }); setReceived(''); setCard(''); setCardRef(''); setField('received') }
+    if (open) { setPhase({ kind: 'form' }); setReceived(''); setCard(''); setCardRef(''); setField('received'); setPrint({ state: 'idle' }) }
   }, [open])
 
   const total = totals.total
@@ -64,6 +78,7 @@ export function PaymentDialog({ open, totals, onClose, onFixStock, onFixPrices }
       rememberLastSale(res.sale)
       clear() // the sale is safely in the database — the cart can go
       setPhase({ kind: 'done', sale: res.sale })
+      if (usePrinterConfig.getState().autoPrint) void runPrint(res.sale, false, setPrint)
     } else {
       setPhase({ kind: 'error', error: res.error, shortages: res.shortages, priceChanges: res.priceChanges })
     }
@@ -72,7 +87,8 @@ export function PaymentDialog({ open, totals, onClose, onFixStock, onFixPrices }
   const saving = phase.kind === 'saving'
   const close = saving ? () => {} : onClose
 
-  if (phase.kind === 'done') return open ? <DoneView sale={phase.sale} onNext={onClose} /> : null
+  if (phase.kind === 'done') return open ? <DoneView sale={phase.sale} onNext={onClose} print={print}
+    onPrint={() => void runPrint(phase.sale, print.state === 'done', setPrint)} /> : null
 
   return (
     <Modal open={open} onClose={close} title={`Payment · ${formatRs(total)}`} size="xl"
@@ -212,10 +228,15 @@ function ErrorView({ phase, onRetry, onBack, onFixStock, onFixPrices }: {
   )
 }
 
-function DoneView({ sale, onNext }: { sale: Sale; onNext: () => void }) {
+function DoneView({ sale, onNext, print, onPrint }: { sale: Sale; onNext: () => void; print: PrintStatus; onPrint: () => void }) {
   return (
     <Modal open onClose={onNext} title="Sale complete" size="md"
-      footer={<Button variant="success" size="lg" className="w-full" autoFocus onClick={onNext}>New sale</Button>}>
+      footer={<div className="flex w-full gap-2">
+        <Button variant="secondary" size="lg" className="flex-1" busy={print.state === 'printing'} onClick={onPrint}>
+          {print.state === 'done' ? 'Reprint' : 'Print receipt'}
+        </Button>
+        <Button variant="success" size="lg" className="flex-[2]" autoFocus onClick={onNext}>New sale</Button>
+      </div>}>
       <div className="space-y-4 text-center">
         <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-4xl text-emerald-700">✓</div>
         <div>
@@ -234,6 +255,9 @@ function DoneView({ sale, onNext }: { sale: Sale; onNext: () => void }) {
             <div className="text-5xl font-black tabular-nums">{formatRs(sale.change_due)}</div>
           </div>
         )}
+        {print.state === 'printing' && <p className="text-sm text-slate-500">Printing receipt…</p>}
+        {print.state === 'done' && !print.warning && <p className="text-sm text-emerald-700">{print.via === 'direct' ? 'Receipt sent to printer.' : 'Receipt sent to browser printing.'}</p>}
+        {print.warning && <p className="text-sm text-amber-700">{print.warning}</p>}
       </div>
     </Modal>
   )

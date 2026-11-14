@@ -44,6 +44,7 @@ export interface Settings {
   receipt_header: string
   receipt_footer: string
   opening_float: number
+  logo_data_url: string | null
   updated_at: string
 }
 

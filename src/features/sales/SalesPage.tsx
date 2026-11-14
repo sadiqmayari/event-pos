@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { cx, EmptyState, ErrorBox, Input, Spinner } from '../../components/ui'
+import { Button, cx, EmptyState, ErrorBox, Input, Spinner } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { errorMessage } from '../../lib/errors'
 import { computeTotals } from '../../lib/pricing'
@@ -10,7 +10,8 @@ import { ProductGrid } from './ProductGrid'
 import { CartPanel } from './CartPanel'
 import { LineEditDialog } from './LineEditDialog'
 import { BillDiscountDialog } from './BillDiscountDialog'
-import { PaymentDialog } from './PaymentDialog'
+import { PaymentDialog, runPrint } from './PaymentDialog'
+import { getLastSale } from './submitSale'
 
 export function SalesPage() {
   const toast = useToast()
@@ -23,6 +24,16 @@ export function SalesPage() {
   const [payOpen, setPayOpen] = useState(false)
   const [cartOpenMobile, setCartOpenMobile] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
+  const [reprinting, setReprinting] = useState(false)
+
+  function reprintLast() {
+    const last = getLastSale()
+    if (!last) return toast('No sale on this device yet', 'error')
+    void runPrint(last, true, (s) => {
+      setReprinting(s.state === 'printing')
+      if (s.state === 'done') toast(s.warning ?? `Reprinted invoice #${last.invoice_no}`, s.warning ? 'error' : 'success')
+    })
+  }
 
   const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products])
   const totals = useMemo(() => computeTotals(lines, billDiscount), [lines, billDiscount])
@@ -75,8 +86,13 @@ export function SalesPage() {
       {/* products */}
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-2 border-b border-slate-200 bg-slate-50 p-3">
-          <Input ref={searchRef} type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={onSearchKey} placeholder="Search name, or scan / type SKU and press Enter" className="h-14 text-lg" />
+          <div className="flex gap-2">
+            <Input ref={searchRef} type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={onSearchKey} placeholder="Search name, or scan / type SKU and press Enter" className="h-14 flex-1 text-lg" />
+            <Button variant="secondary" className="h-14 shrink-0" busy={reprinting} onClick={reprintLast} title="Reprint the last receipt from this device">
+              Reprint last
+            </Button>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {['', ...categories].map((c) => (
               <button key={c || 'all'} type="button" onClick={() => setCategory(c)}

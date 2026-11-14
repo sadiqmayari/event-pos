@@ -18,6 +18,7 @@ const links: { to: string; label: string; admin?: boolean }[] = [
   { to: '/history', label: 'History' },
   { to: '/reports', label: 'Reports', admin: true },
   { to: '/staff', label: 'Staff', admin: true },
+  { to: '/settings', label: 'Settings' },
 ]
 
 export function Layout() {

@@ -6,7 +6,7 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
 |---|---|
 | 1. Setup, auth, products & stock | ✅ done |
 | 2. Sales screen | ✅ done |
-| 3. Invoices & printing (Black Copper BC-86AC) | ⏳ |
+| 3. Invoices & printing (Black Copper BC-86AC) | ✅ done |
 | 4. History, voids, reports | ⏳ |
 | 5. Offline queue + PWA | ⏳ |
 | 6. GitHub Pages deployment | ⏳ |
@@ -22,8 +22,9 @@ A point-of-sale PWA for a 4-day sales event. React + Vite + TypeScript + Tailwin
    2. `supabase/migrations/002_rls.sql`
    3. `supabase/migrations/003_stock_functions.sql`
    4. `supabase/migrations/004_sales.sql`
-   5. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
-   6. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
+   5. `supabase/migrations/005_receipt_settings.sql`
+   6. *(optional, sample data)* `supabase/seed.sql` adds 40 sample products.
+   7. *(optional, after creating a staff user)* `supabase/fake_sales.sql` creates 50 fake sales over the last 4 days through the real sale logic. Run `supabase/reset_test_data.sql` **before the event** to delete all test sales, put the sold stock back, and restart invoice numbers at 1.
 4. **Create staff users:** open **Authentication → Users → Add user → Create new user**, enter an email and password, and tick *Auto confirm user*. Each new user gets a `profiles` row automatically, with the role **cashier**.
 5. **Make yourself admin** by running this once in the SQL Editor (use your email):
    ```sql
@@ -90,6 +91,33 @@ The **Sell** tab is the main screen. On a tablet in landscape and on a laptop, p
 10. **The cart survives a page reload,** so a refreshed tab doesn't lose a half-built sale.
 
 Database tests: `npm run test:db` covers all of this, including 50 fake sales whose stock ledger is checked to match current stock exactly.
+
+## 6. Receipts & printing (Stage 3)
+
+Every sale has a sequential invoice number, date/time (in the device's timezone), cashier name, items, discounts, totals, payment details and change. Open **Settings** to set things up.
+
+**Receipt design (admin, shared by all devices):** set the event name, header lines (address, phone), footer lines (thank-you note, exchange policy), an optional logo, and the opening cash in the drawer. A live preview shows exactly what will print.
+
+**Printer (per device):** each till chooses its own:
+
+| Setting | Notes |
+|---|---|
+| Paper width | **80 mm** (a roll about 8 cm wide) or **58 mm** (about 5.8 cm). |
+| Print automatically | On by default: a receipt prints as soon as a sale is saved. |
+| Browser printing | Works on every device. The receipt is laid out for thermal paper; choose the printer in the print dialog. |
+| USB (direct) | ESC/POS sent straight to the printer through WebUSB, in Chrome. **Best on Android tablets** with a USB-OTG cable. |
+| Bluetooth (direct) | For BLE thermal printers (Chrome on Android/ChromeOS). Reconnect after reloading the page. |
+| Serial / COM (direct) | For a printer that shows up as a COM port, e.g. a paired Bluetooth printer on Windows. |
+
+If direct printing fails for any reason (unplugged, out of range, permission), the app **falls back to browser printing automatically** and shows why.
+
+**Reprinting:** after a sale, the "Sale complete" screen has **Print receipt** / **Reprint**. The Sell screen has **Reprint last** for the last receipt from this device. Reprints are marked "REPRINT". Stage 4 adds reprinting any receipt from Sales history.
+
+### Black Copper BC-86AC: recommended setup
+- **Android tablet (Chrome):** connect the printer with a USB-OTG cable. Choose **Settings → USB (direct)**, pick the printer, then **Print test receipt**. This is the fastest option, with no print dialog.
+- **Windows laptop:** install Black Copper's Windows driver, then in Windows *Printers → BC-86AC → Printing preferences* set paper to 80 mm (or 72 mm printable) with no margins. Use **Browser printing**. In Chrome's print dialog choose the BC-86AC, set Margins to *None* and turn off *Headers and footers* (Chrome remembers this). Tip: start Chrome with `--kiosk-printing` to print without the dialog.
+  - *Advanced:* direct USB on Windows only works if you replace the driver with WinUSB (e.g. using Zadig). The printer then stops working for other Windows apps, so browser printing is usually better.
+- **Printer test:** **Settings → Print test receipt** prints a receipt marked TEST PRINT.
 
 ### What's enforced in the database (not just hidden in the UI)
 
