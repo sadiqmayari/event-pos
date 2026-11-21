@@ -9,6 +9,7 @@ import { eventDayKeys, formatDateTime, formatDayKey, localDateKey, userTimeZone 
 import { useSettings } from '../settings/useSettings'
 import { downloadFullBackup, exportSaleItems, exportSales, exportStockMovements } from './exports'
 import { CashierCashup } from './CashierCashup'
+import { ItemSalesReport } from './ItemSalesReport'
 
 interface DayRow {
   day: string; invoices: number; items: number; gross: number; discounts: number; total: number
@@ -122,7 +123,7 @@ export function ReportsPage() {
               <Stat label="Average sale" value={formatRs(sel.invoices ? Math.round(sel.total / sel.invoices) : 0)} />
             </div>
           )}
-          <h3 className="pt-2 font-semibold">Top products</h3>
+          <h3 className="pt-2 font-semibold">Top 10 products <span className="text-sm font-normal text-slate-500">· all items in “Sales by item” below</span></h3>
           {top.error ? <ErrorBox>{errorMessage(top.error)}</ErrorBox> : (
             <ol className="divide-y divide-slate-100">
               {(top.data ?? []).map((t, i) => (
@@ -140,6 +141,8 @@ export function ReportsPage() {
 
         <CashReconciliation days={days} defaultDay={days.includes(today) ? today : to} />
       </div>
+
+      <ItemSalesReport days={days} />
 
       <CashierCashup days={days} />
 

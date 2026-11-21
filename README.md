@@ -141,6 +141,7 @@ Phones and tablets without a printer can send their receipts to a laptop that ha
 **Reports (admin):** set the **event first day** and **number of days** in Settings first.
 - A table with one row per event day: invoices, items, gross, discounts, net sales, cash, card and voids, plus a total row. Tap a day for its details and **top products** (or choose *Whole event*).
 - **End-of-day cash count:** *expected in drawer* = opening cash (from Settings) + cash taken that day (cash sales net of change, plus the cash part of split payments). Enter the counted cash to see the difference (over/short) and save it. Saved counts are listed.
+- **Sales by item:** every product with quantity sold, revenue, share of revenue and stock left, for any single day or the whole event. Search, sort by any column, tick *Include items not sold* to list products with no sales, and **Export CSV**.
 - **Cash by cashier:** one row per cashier for the chosen day: invoices, sales, card, cash taken, float given, cash collected, and **still to collect** (float + cash sales − collected).
   - **Give float:** records change money handed to a cashier. It's added to what they owe.
   - **Collect cash:** shows what the cashier should hand over. Enter what you counted to see *exact / short / over*, then save. Collect as many times a day as you like; every collection keeps its expected amount and difference. **Show cash log** lists all floats and collections. Export CSV is available.
